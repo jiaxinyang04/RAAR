@@ -1,22 +1,20 @@
-function [x,objV] = wshrinkObj(x,rho,sX, isWeight,mode)
+function [x,objV] = wshrinkObj(x,rho,sX, isWeight,mode,omega)
 
 if isWeight == 1
 %     C = 2*sqrt(2)*sqrt(sX(3)*sX(2));
     C = sqrt(sX(3)*sX(2));
 end
 if ~exist('mode','var')
-    % mode = 1是采用lateral slice的方法
-    % mode = 2是采用front slice的方法
-    % mode = 3是采用top slice的方法
     mode = 1;
 end
 
-X=reshape(x,sX);
+X=reshape(x,sX);%nmv
 if mode == 1
     Y=X2Yi(X,3);
 elseif mode == 3
-    Y=shiftdim(X, 1);
-else
+    Y=shiftdim(X, 1); %rotate to mvn
+    % Y=shiftdim(Y, 1);%vnm
+else%mode==2
     Y = X;
 end
 % 
@@ -29,7 +27,7 @@ objV = 0;
 if mode == 1
     n3 = sX(2);
 elseif mode == 3
-    n3 = sX(1);
+    n3 = sX(1);%n璧嬪�肩粰n3
 else
     n3 = sX(3);
 end
@@ -43,9 +41,11 @@ if isinteger(n3/2)
             weight = C./(diag(shat) + eps);
             tau = rho*weight;
             shat = soft(shat,diag(tau));
-        else
-            tau = rho;
-            shat = max(shat - tau,0);
+        else%鎵ц
+            for l = 1:sX(3)
+                tau = rho*omega(l);
+                shat(l,l) = sign(shat(l,l))*max(shat(l,l) - tau,0);
+            end
         end                 
         
         objV = objV + sum(shat(:));
@@ -61,8 +61,10 @@ if isinteger(n3/2)
        tau = rho*weight;
        shat = soft(shat,diag(tau));
     else
-       tau = rho;
-       shat = max(shat - tau,0);
+       for l = 1:sX(3)%閬嶅巻姣忎釜瑙嗗浘
+            tau = rho*omega(l);
+            shat(l,l) = sign(shat(l,l))*max(shat(l,l) - tau,0);
+       end
     end
     
     objV = objV + sum(shat(:));
@@ -75,9 +77,11 @@ else
             weight = C./(diag(shat) + eps);
             tau = rho*weight;
             shat = soft(shat,diag(tau));
-        else
-            tau = rho;
-            shat = max(shat - tau,0);
+        else     
+            for l = 1:sX(3)%閬嶅巻姣忎釜瑙嗗浘
+                tau = rho*omega(l);
+                shat(l,l) = sign(shat(l,l))*max(shat(l,l) - tau,0);
+            end
         end
         objV = objV + sum(shat(:));
         Yhat(:,:,i) = uhat*shat*vhat';
